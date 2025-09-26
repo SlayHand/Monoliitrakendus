@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchPosts, createPost, fetchPost } from "./api";
+import { fetchPosts, createPost, fetchPost, deletePost } from "./api";
 import CommentsList from "./components/CommentsList";
 import CommentForm from "./components/CommentForm";
 
@@ -10,6 +10,26 @@ export default function App() {
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+
+  async function onDelete(postId) {
+  // Optimistlik: uuenda kohe UI-d
+  setPosts(prev => prev.filter(p => p.id !== postId));
+  // sulge lahti klapitud plokk (kui oli)
+  setExpanded(prev => {
+    if (!prev[postId]) return prev;
+    const copy = { ...prev };
+    delete copy[postId];
+    return copy;
+  });
+
+  try {
+    await deletePost(postId);
+  } catch (e) {
+    // kui läks aia taha, lae nimekiri uuesti (või näita veateadet)
+    alert(e.message || "Delete failed");
+    load(); // tõmbab uuesti /api/posts
+  }
+}
 
   async function load() {
     try {
@@ -95,9 +115,15 @@ export default function App() {
           </div>
           <p style={{ whiteSpace: "pre-wrap" }}>{p.body}</p>
 
-          <button onClick={() => toggle(p.id)}>
-            {expanded[p.id] ? "Peida kommentaarid" : "Näita kommentaare"}
-          </button>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={() => toggle(p.id)}>
+              {expanded[p.id] ? "Peida kommentaarid" : "Näita kommentaare"}
+            </button>
+            <button onClick={() => onDelete(p.id)} style={{ color: "red" }}>
+              Kustuta
+            </button>
+          </div>
+
 
           {expanded[p.id] && (
             <div style={{ marginTop: 12 }}>

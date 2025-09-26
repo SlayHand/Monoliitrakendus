@@ -65,6 +65,24 @@ app.post("/api/posts/:id/comments", (req, res) => {
   res.status(201).json(newComment);
 });
 
+// DELETE post + tema kommentaarid
+app.delete("/api/posts/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = posts.findIndex(p => p.id === id);
+  if (idx === -1) return res.status(404).json({ error: "Post not found" });
+
+  // eemalda post
+  const [deleted] = posts.splice(idx, 1);
+  // eemalda seotud kommentaarid
+  const before = comments.length;
+  for (let i = comments.length - 1; i >= 0; i--) {
+    if (comments[i].postId === id) comments.splice(i, 1);
+  }
+  const removedComments = before - comments.length;
+
+  res.json({ ok: true, deletedId: id, removedComments, post: deleted });
+});
+
 // Healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 

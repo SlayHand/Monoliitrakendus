@@ -33,3 +33,9 @@ export async function createComment(postId, data) {
   if (!res.ok) throw new Error("Failed to create comment");
   return res.json();
 }
+
+export async function deletePost(id) {
+  const res = await fetch(`${API}/api/posts/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete post");
+  return res.json();
+}
