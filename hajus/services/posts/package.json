@@ -1,0 +1,14 @@
+{
+  "name": "posts-svc",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "nanoid": "^5.1.6"
+  }
+}
