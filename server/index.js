@@ -7,30 +7,40 @@ app.use(cors());
 app.use(express.json());
 
 const posts = [
-  { id: "p1", title: "Esimene post", body: "Tere, monoliit!", createdAt: Date.now() },
-  { id: "p2", title: "Teine post", body: "Kommentaarid tulekul.", createdAt: Date.now() }
+  {
+    id: "p1",
+    title: "Esimene postitus",
+    body: "Tere, monoliit!",
+    createdAt: Date.now(),
+  },
+  {
+    id: "p2",
+    title: "Teine postitus",
+    body: "Kommentaarid tulekul.",
+    createdAt: Date.now(),
+  },
 ];
 
 const comments = [
   { id: "c1", postId: "p1", body: "Mõnus algus!", createdAt: Date.now() },
-  { id: "c2", postId: "p1", body: "+1", createdAt: Date.now() }
+  { id: "c2", postId: "p1", body: "+1", createdAt: Date.now() },
 ];
 // ---- POSTS ----
 // GET kõik postid koos kommentaaride arvuga
 app.get("/api/posts", (req, res) => {
-  const withCounts = posts.map(p => ({
+  const withCounts = posts.map((p) => ({
     ...p,
-    commentsCount: comments.filter(c => c.postId === p.id).length
+    commentsCount: comments.filter((c) => c.postId === p.id).length,
   }));
   res.json(withCounts);
 });
 
 // GET üks post + tema kommentaarid
 app.get("/api/posts/:id", (req, res) => {
-  const post = posts.find(p => p.id === req.params.id);
+  const post = posts.find((p) => p.id === req.params.id);
   if (!post) return res.status(404).json({ error: "Post not found" });
   const postComments = comments
-    .filter(c => c.postId === post.id)
+    .filter((c) => c.postId === post.id)
     .sort((a, b) => a.createdAt - b.createdAt);
   res.json({ ...post, comments: postComments });
 });
@@ -38,7 +48,8 @@ app.get("/api/posts/:id", (req, res) => {
 // POST uus post
 app.post("/api/posts", (req, res) => {
   const { title, body } = req.body || {};
-  if (!title || !body) return res.status(400).json({ error: "title and body required" });
+  if (!title || !body)
+    return res.status(400).json({ error: "title and body required" });
   const newPost = { id: nanoid(), title, body, createdAt: Date.now() };
   posts.unshift(newPost);
   res.status(201).json(newPost);
@@ -48,7 +59,7 @@ app.post("/api/posts", (req, res) => {
 // GET kommentaarid postile
 app.get("/api/posts/:id/comments", (req, res) => {
   const list = comments
-    .filter(c => c.postId === req.params.id)
+    .filter((c) => c.postId === req.params.id)
     .sort((a, b) => a.createdAt - b.createdAt);
   res.json(list);
 });
@@ -57,10 +68,15 @@ app.get("/api/posts/:id/comments", (req, res) => {
 app.post("/api/posts/:id/comments", (req, res) => {
   const { body } = req.body || {};
   if (!body) return res.status(400).json({ error: "comment body required" });
-  const post = posts.find(p => p.id === req.params.id);
+  const post = posts.find((p) => p.id === req.params.id);
   if (!post) return res.status(404).json({ error: "Post not found" });
 
-  const newComment = { id: nanoid(), postId: post.id, body, createdAt: Date.now() };
+  const newComment = {
+    id: nanoid(),
+    postId: post.id,
+    body,
+    createdAt: Date.now(),
+  };
   comments.push(newComment);
   res.status(201).json(newComment);
 });
@@ -68,7 +84,7 @@ app.post("/api/posts/:id/comments", (req, res) => {
 // DELETE post + tema kommentaarid
 app.delete("/api/posts/:id", (req, res) => {
   const { id } = req.params;
-  const idx = posts.findIndex(p => p.id === id);
+  const idx = posts.findIndex((p) => p.id === id);
   if (idx === -1) return res.status(404).json({ error: "Post not found" });
 
   // eemalda post
@@ -86,7 +102,7 @@ app.delete("/api/posts/:id", (req, res) => {
 // Healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {
   console.log(`Server töötab http://localhost:${PORT}`);
 });

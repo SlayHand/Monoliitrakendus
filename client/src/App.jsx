@@ -120,7 +120,7 @@ export default function App() {
               {expanded[p.id] ? "Peida kommentaarid" : "Näita kommentaare"}
             </button>
             <button onClick={() => onDelete(p.id)} style={{ color: "red" }}>
-              Kustuta
+              Kustuta postitus
             </button>
           </div>
 
