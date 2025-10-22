@@ -43,5 +43,11 @@ export async function createComment(postId, { body }) {
   if (!r.ok) throw new Error("Failed to create comment");
   return r.json();
 }
+export async function getCommentById(id) {
+  const r = await fetch(`${COMMENTS_BASE}/api/comments/${id}`);
+  if (!r.ok) throw new Error("Failed to load comment");
+  return r.json();
+}
 
+// alias, kui App.jsx ootab endiselt neid nimesid
 export { getPosts as fetchPosts, getPost as fetchPost };

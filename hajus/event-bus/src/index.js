@@ -5,24 +5,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/**
- * Lihtne event-bus:
- * - POST /events  (teenused publish'ivad siia { type, data })
- * - bus LOGIB ja SAADAB sama sündmuse edasi kõikidele teenustele /events teele
- *   (siin: posts ja comments)
- */
-
 const TARGETS = [
   process.env.POSTS_ENDPOINT || "http://localhost:5000/events",
   process.env.COMMENTS_ENDPOINT || "http://localhost:5001/events",
+  process.env.QUERY_ENDPOINT || "http://localhost:5002/events",
+  process.env.MODERATION_ENDPOINT || "http://localhost:5003/events",
 ];
 
 app.post("/events", async (req, res) => {
-  const event = req.body; // { type, data, id?, time? ... }
-  console.log("[bus]收到:", event);
+  const event = req.body; // { type, data, ... }
+  console.log("[bus] ←", event?.type, event?.data?.id ?? "");
 
-  // edasta kõikidesse teenustesse (fire-and-forget)
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     TARGETS.map(async (url) => {
       try {
         const r = await fetch(url, {
@@ -31,14 +25,14 @@ app.post("/events", async (req, res) => {
           body: JSON.stringify(event),
         });
         if (!r.ok) throw new Error(`status ${r.status}`);
-        console.log(`[bus] -> ${url} OK`);
+        console.log(`[bus] → ${url} OK`);
       } catch (e) {
-        console.error(`[bus] -> ${url} FAIL:`, e.message);
+        console.error(`[bus] → ${url} FAIL:`, e.message);
       }
     })
   );
 
-  res.json({ ok: true });
+  res.json({ ok: true, delivered: results.length });
 });
 
 app.get("/health", (_, res) => res.json({ ok: true }));

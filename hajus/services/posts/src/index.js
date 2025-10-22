@@ -13,25 +13,32 @@ const posts = []; // { id, title, body, createdAt, commentsCount }
 const COMMENTS_BASE = process.env.COMMENTS_BASE || "http://localhost:5001";
 const EVENT_BUS = process.env.EVENT_BUS || "http://localhost:5005";
 
-/** Kõik postid */
+/** Kõik postid (ilma kommentaaride sisuta) */
 app.get("/api/posts", (req, res) => {
   res.json(posts.map((p) => ({ ...p, commentsCount: p.commentsCount ?? 0 })));
 });
 
-/** Üks post (võid jätta ilma kommentaarideta, sest commentsCount tuleb eventidest) */
+/** Üks post — kommentaarid agregeeritakse comments-svc'ist ja filtreeritakse ainult approved */
 app.get("/api/posts/:id", async (req, res) => {
   const post = posts.find((p) => p.id === req.params.id);
   if (!post) return res.status(404).json({ error: "Post not found" });
 
-  // Kui tahad _ka_ kommentaarid kaasa (agregatsioon), jäta alles see blokk:
   try {
     const r = await fetch(`${COMMENTS_BASE}/api/posts/${post.id}/comments`);
     const comments = r.ok ? await r.json() : [];
-    post.commentsCount = Array.isArray(comments)
-      ? comments.length
-      : post.commentsCount ?? 0;
-    return res.json({ ...post, comments });
-  } catch {
+
+    // Näita ainult modereerimise poolt heaks kiidetud kommentaare
+    const visible = Array.isArray(comments)
+      ? comments.filter((c) => c.status === "approved")
+      : [];
+
+    // Hoia loendur kooskõlas sellega, mida välja annad
+    post.commentsCount = visible.length;
+
+    return res.json({ ...post, comments: visible });
+  } catch (e) {
+    console.error("[posts] comments fetch failed:", e.message);
+    // Tõrke korral tagasta post ilma kommentaarideta (UI ei jää kinni)
     return res.json({ ...post, comments: [] });
   }
 });
@@ -66,7 +73,7 @@ app.post("/api/posts", async (req, res) => {
   res.status(201).json(p);
 });
 
-/** Kustuta post + (soovi korral) publish PostDeleted */
+/** Kustuta post + publish PostDeleted (valikuline) */
 app.delete("/api/posts/:id", async (req, res) => {
   const i = posts.findIndex((p) => p.id === req.params.id);
   if (i === -1) return res.status(404).json({ error: "Post not found" });
@@ -86,9 +93,9 @@ app.delete("/api/posts/:id", async (req, res) => {
   res.json({ ok: true, deletedId: deleted.id });
 });
 
-/** Event handler – CONSUME (nt CommentCreated → uuenda loendurit) */
 app.post("/events", (req, res) => {
   const { type, data } = req.body || {};
+
   if (type === "CommentCreated") {
     const { postId } = data || {};
     const post = posts.find((p) => p.id === postId);
@@ -97,6 +104,7 @@ app.post("/events", (req, res) => {
       console.log("[posts] CommentCreated → ++commentsCount for", postId);
     }
   }
+
   if (type === "CommentDeleted") {
     const { postId } = data || {};
     const post = posts.find((p) => p.id === postId);
@@ -105,6 +113,7 @@ app.post("/events", (req, res) => {
       console.log("[posts] CommentDeleted → --commentsCount for", postId);
     }
   }
+
   res.json({ ok: true });
 });
 
